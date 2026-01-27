@@ -94,7 +94,7 @@ def measure_allan_deviation(gyro_x_data, gyro_y_data, gyro_z_data,
 def plot_allen_deviation(tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz,
                           tau_ax, ad_ax, tau_ay, ad_ay, tau_az, ad_az):
     plt.figure(figsize=(8, 5))
-    plt.title("Gyro Allan Deviation (from integrated angle)")
+    plt.title("Gyro Allan Deviation")
     plt.plot(tau_gx, ad_gx, label="gx")
     plt.plot(tau_gy, ad_gy, label="gy")
     plt.plot(tau_gz, ad_gz, label="gz")
@@ -107,7 +107,7 @@ def plot_allen_deviation(tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz,
     plt.savefig("gyro_allan_deviation.png", dpi=300)
 
     plt.figure(figsize=(8, 5))
-    plt.title("Accel Allan Deviation (from integrated velocity)")
+    plt.title("Accel Allan Deviation")
     plt.plot(tau_ax, ad_ax, label="ax")
     plt.plot(tau_ay, ad_ay, label="ay")
     plt.plot(tau_az, ad_az, label="az")
