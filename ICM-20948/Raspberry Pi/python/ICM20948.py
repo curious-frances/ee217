@@ -373,7 +373,7 @@ class ICM20948(object):
     MotionVal[6]=Mag[0]
     MotionVal[7]=Mag[1]
     MotionVal[8]=Mag[2]
-    
+   
 if __name__ == '__main__':
   import time
   print("\nSense HAT Test Program ...\n")
