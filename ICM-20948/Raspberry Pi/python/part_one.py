@@ -18,7 +18,7 @@ data_gyro  = []
 data_comp_pitch = []
 data_raw_comp_pitch = []
 time_data = []
-COLLECTION_TIME = 120 # seconds 2400
+COLLECTION_TIME = 2000 # seconds 2400 3600
 
 # allen deviation vars
 gyro_x_data = []
@@ -29,7 +29,7 @@ accel_x_data = []
 accel_y_data = []
 accel_z_data = []
 
-SAMPLE_RATE = 500 #Hz
+SAMPLE_RATE = 600 #Hz
 NOISE_SCALE = 0.2 # Attenuation 80%
 NOISE_THRESHOLD = 5 # Accel Noise Threshold
 
@@ -54,6 +54,10 @@ def collect_allen_deviation_data():
         accel_z_data.append(accel[2])
 
         time.sleep(1.0 / SAMPLE_RATE)
+    # Estimate sample rate
+    dt = np.diff(np.array(time_data))
+    print("Estimated fs:", 1/np.median(dt))
+    print("dt std/mean:", np.std(dt)/np.mean(dt))
 
 def measure_allan_deviation(gyro_x_data, gyro_y_data, gyro_z_data,
                             accel_x_data, accel_y_data, accel_z_data,
@@ -79,6 +83,7 @@ def measure_allan_deviation(gyro_x_data, gyro_y_data, gyro_z_data,
     tau_gy, ad_gy = AllanDeviation(theta_y, ts, num_clusters=num_clusters)
     tau_gz, ad_gz = AllanDeviation(theta_z, ts, num_clusters=num_clusters)
 
+    # Integrate acceleration to get velocity seem to have worse allan deviation
     vel_x = np.cumsum(accel_x_arr) * ts
     vel_y = np.cumsum(accel_y_arr) * ts
     vel_z = np.cumsum(accel_z_arr) * ts
@@ -139,7 +144,8 @@ def AllanDeviation(data_arr: np.ndarray, ts: float, num_clusters: int=100):
     Mmax = 2**np.floor(np.log2(N / 2))
     M = np.logspace(np.log10(1), np.log10(Mmax), num=num_clusters)
     M = np.ceil(M)  # Round up to integer
-    M = np.unique(M)  # Remove duplicates
+    M = np.unique(M) # Remove duplicates
+
     taus = M * ts  # Compute 'cluster durations' tau
 
     # Compute Allan variance
