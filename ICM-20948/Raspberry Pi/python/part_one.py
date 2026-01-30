@@ -4,6 +4,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+from filterpy.kalman import KalmanFilter
 
 
 ACCEL_FULL_SCALE = 2.0 #+-2g
@@ -18,7 +19,14 @@ data_gyro  = []
 data_comp_pitch = []
 data_raw_comp_pitch = []
 time_data = []
-COLLECTION_TIME = 2000 # seconds 2400 3600
+COLLECTION_TIME = 30 # seconds 2400 3600
+
+# Arrays for part one test 
+accel_pitch_data = []
+accel_roll_data = []
+
+gyro_pitch_data = []
+gyro_roll_data = []
 
 # allen deviation vars
 gyro_x_data = []
@@ -35,6 +43,10 @@ NOISE_THRESHOLD = 5 # Accel Noise Threshold
 
 ACCEL_SCALE = ACCEL_FULL_SCALE / ADC_RESOLUTION  #+-2g range
 GYRO_SCALE = GYRO_FULL_SCALE / ADC_RESOLUTION  #+-1000 DPS
+
+# 1D Kalman Filter vars 
+MEASURED_VAR = 0
+
 
 
 def collect_allen_deviation_data():
@@ -246,23 +258,34 @@ def main():
         data_gyro.append(gyro_pitch)
         data_comp_pitch.append(comp_pitch)
         data_raw_comp_pitch.append(comp_pitch_no_lp)
+
+
+        # data for part one 
+        gyro_pitch_data.append(gyro_pitch)
+        gyro_roll_data.append(gyro_roll)
+
+        accel_pitch_data.append(raw_accel_pitch)
+        accel_roll_data.append(raw_accel_roll)
+
         time_data.append(time.time() - start_time)
         time.sleep(1.0 / SAMPLE_RATE)
         
 if __name__ == "__main__":
-    #main()
-    collect_allen_deviation_data()
-    # Measure Allan Deviation
-    tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz, \
-    tau_ax, ad_ax, tau_ay, ad_ay, tau_az, ad_az = measure_allan_deviation(
-        gyro_x_data, gyro_y_data, gyro_z_data,
-        accel_x_data, accel_y_data, accel_z_data,
-        time_data, num_clusters=200
-    )
-    plot_allen_deviation(
-        tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz,
-        tau_ax, ad_ax, tau_ay, ad_ay, tau_az, ad_az
-    )
+    main()
+    # collect_allen_deviation_data()
+    # # Measure Allan Deviation
+    # tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz, \
+    # tau_ax, ad_ax, tau_ay, ad_ay, tau_az, ad_az = measure_allan_deviation(
+    #     gyro_x_data, gyro_y_data, gyro_z_data,
+    #     accel_x_data, accel_y_data, accel_z_data,
+    #     time_data, num_clusters=200
+    # )
+    # plot_allen_deviation(
+    #     tau_gx, ad_gx, tau_gy, ad_gy, tau_gz, ad_gz,
+    #     tau_ax, ad_ax, tau_ay, ad_ay, tau_az, ad_az
+    # )
+    plot_data(time_data, gyro_roll_data, label="Gyro Roll Angle", title="Gyro Roll Angle")
+    plot_data(time_data, accel_roll_data, label="Accelerometer Roll Angle", title="Accelerometer Roll Angle")
 
     # plot_data(time_data, data_accel, label="Accel Pitch Angle", title="Accelerometer Pitch Angle")
     # plot_data(time_data, data_gyro, label="Gyro Pitch Angle", title="Gyroscope Pitch Angle")
