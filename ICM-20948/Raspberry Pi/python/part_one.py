@@ -108,7 +108,7 @@ def collect_1d_data(bias_x, thr=0.05):
         g_x = g * math.sin(math.radians(pitch_deg))
         g_y = g * math.sin(math.radians(roll_deg))
         a_bad = ax - bias_x
-        a = (ax + bias_x) - g_x 
+        a = (ax - bias_x) - g_x 
         print(f"Uncompensated a: {a_bad:.3f} m/s^2, Compensated a: {a:.3f} m/s^2, Pitch: {pitch_deg:.2f} deg")
         
         
