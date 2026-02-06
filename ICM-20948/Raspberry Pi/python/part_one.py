@@ -21,7 +21,7 @@ data_gyro  = []
 data_comp_pitch = []
 data_raw_comp_pitch = []
 time_data = []
-COLLECTION_TIME = 10 # seconds 2400 3600
+COLLECTION_TIME = 120 # seconds 2400 3600
 
 # Arrays for part one test 
 accel_pitch_data = []
@@ -98,7 +98,7 @@ def collect_1d_data(bias_x, thr=0.05):
     print("Collecting 1D data...")
     while time.time() - start_t < COLLECTION_TIME:
         (ax, ay, az), (gx, gy, gz) = read_sensor(imu)
-        pitch_deg, _ = accel_to_angle(ax, ay, az)
+        pitch_deg, roll_deg = accel_to_angle(ax, ay, az)
         
         curr_t = time.time()
         dt = curr_t - prev_t
@@ -106,8 +106,9 @@ def collect_1d_data(bias_x, thr=0.05):
         
         # gravity compensation
         g_x = g * math.sin(math.radians(pitch_deg))
+        g_y = g * math.sin(math.radians(roll_deg))
         a_bad = ax - bias_x
-        a = (ax - bias_x) - g_x
+        a = (ax + bias_x) - g_x 
         print(f"Uncompensated a: {a_bad:.3f} m/s^2, Compensated a: {a:.3f} m/s^2, Pitch: {pitch_deg:.2f} deg")
         
         
