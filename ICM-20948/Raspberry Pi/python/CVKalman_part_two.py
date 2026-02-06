@@ -11,7 +11,7 @@ from filterpy.common import Q_discrete_white_noise
 # ------------------------------------------------------------
 # Load IMU data (bias already removed)
 # ------------------------------------------------------------
-csv_path = "6ft_medium_round_straight_c.csv"
+csv_path = "imu_2026_02_06_07_59_03.csv"
 df = pd.read_csv(csv_path)
 
 taxis = df["time"].values
