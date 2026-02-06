@@ -16,6 +16,7 @@ import math as m
 import numpy as np
 from matplotlib import pyplot as plt
 from filterpy.kalman import KalmanFilter
+from filterpy.common import Q_discrete_white_noise
 
 # ------------------------------------------------------------
 # Simulation parameters
@@ -70,11 +71,16 @@ kf.P = np.diag([1., 1., 1.])
 
 # Process noise (acceleration random walk)
 sigma_a = 0.5
-kf.Q = sigma_a**2 * np.array([
-    [0.25*dt**4, 0.5*dt**3, 0.5*dt**2],
-    [0.5*dt**3,     dt**2,       dt],
-    [0.5*dt**2,        dt,        1]
-])
+# kf.Q = sigma_a**2 * np.array([
+#     [0.25*dt**4, 0.5*dt**3, 0.5*dt**2],
+#     [0.5*dt**3,     dt**2,       dt],
+#     [0.5*dt**2,        dt,        1]
+# ])
+kf.Q = Q_discrete_white_noise(
+    dim=3,
+    dt=dt,
+    var=sigma_a**2
+)
 
 kf.R = np.array([[accel_noise_var]])
 
