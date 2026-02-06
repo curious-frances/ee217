@@ -167,7 +167,7 @@ def main():
     # === Figure 2: raw accel (all axes) to match original script's quick look ===
     fig2 = plt.figure(figsize=(8, 4))
     plt.plot(taxis, a_xyz, label=['accel x', 'accel y', 'accel z'])
-    plt.title("Accelerometer (selected columns)")
+    plt.title("Accelerometer")
     plt.xlabel("Time (s)")
     plt.ylabel("Acceleration (m/s^2)")
     plt.grid(True)
