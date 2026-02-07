@@ -15,7 +15,7 @@ import os
 if len(sys.argv) > 1:
     csv_path = sys.argv[1]
 else:
-    csv_path = "extension_data/imu_2026_02_06_08_29_17.csv"
+    csv_path = "extension_data/imu_2026_02_06_08_27_58.csv"
 
 df = pd.read_csv(csv_path)
 
