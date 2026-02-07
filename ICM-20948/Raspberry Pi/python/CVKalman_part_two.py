@@ -7,10 +7,14 @@ from matplotlib import pyplot as plt
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
+<<<<<<< HEAD
 # ------------------------------------------------------------
 # Load IMU data
 # ------------------------------------------------------------
 csv_path = "good_data/imu_2026_02_06_07_57_32.csv"
+=======
+csv_path = "imu_2026_02_07_23_26_02_-0.0854.csv"
+>>>>>>> 5b29d8be3359b892fb0bccba1ad49fcc5be024d1
 df = pd.read_csv(csv_path)
 
 taxis = df["time"].values
@@ -51,7 +55,42 @@ def run_kf(ax_meas, threshold=False, thresh_val=0.1):
         kf.predict()
         kf.update(np.array([ax]))
 
+<<<<<<< HEAD
         if threshold and abs(kf.x[1]) < 0.05:
+=======
+sigma_a = 0.1 # guess
+
+kf.Q = Q_discrete_white_noise(
+    dim=3,
+    dt=dt,
+    var=sigma_a**2
+)
+
+# Measurement noise variance (from calibration)
+accel_noise_var = 0.02
+kf.R = np.array([[accel_noise_var]])
+
+xs = []
+vs = []
+accs = []
+prev_ax = 0
+NOISE_SCALE = 0.2
+NOISE_THRESHOLD = 0.1
+for ax, ay, az in zip(ax_meas, ay_meas, az_meas):
+
+    # a_mag = np.sqrt(ax**2 + ay**2 + az**2)
+    ax = 0.0 if (abs(ax) < 0.1) else ax
+    
+    if abs(ax - prev_ax) > NOISE_THRESHOLD:
+        ax = ax * NOISE_SCALE
+    prev_ax = ax
+    
+    kf.predict()
+
+    kf.update(np.array([ax]))
+
+    if abs(kf.x[1]) < 0.05:
+>>>>>>> 5b29d8be3359b892fb0bccba1ad49fcc5be024d1
             kf.x[1] *= 0.9
 
         xs.append(kf.x[0])
