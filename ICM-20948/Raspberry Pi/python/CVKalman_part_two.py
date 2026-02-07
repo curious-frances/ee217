@@ -50,12 +50,18 @@ kf.R = np.array([[accel_noise_var]])
 xs = []
 vs = []
 accs = []
-
+prev_ax = 0
+NOISE_SCALE = 0.2
+NOISE_THRESHOLD = 0.1
 for ax, ay, az in zip(ax_meas, ay_meas, az_meas):
 
     # a_mag = np.sqrt(ax**2 + ay**2 + az**2)
     ax = 0.0 if (abs(ax) < 0.1) else ax
-
+    
+    if abs(ax - prev_ax) > NOISE_THRESHOLD:
+        ax = ax * NOISE_SCALE
+    prev_ax = ax
+    
     kf.predict()
 
     kf.update(np.array([ax]))
