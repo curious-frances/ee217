@@ -38,34 +38,66 @@ def calibrate_accel_bias(imu: ICM20948, calibration_time_s=CALIBRATION_TIME_S, f
     dt = 1.0 / fs
     n = max(1, int(calibration_time_s * fs))
 
-    acc = np.zeros(3, dtype=float)
+    accel_x = []
+    accel_y = []
+    accel_z = []
+    gyro_x = []
+    gyro_y = []
+    gyro_z = []
 
     for _ in range(n):
-        (ax, ay, az), _ = read_sensor(imu)
-        acc += np.array([ax, ay, az], dtype=float)
+        (ax, ay, az), (gx, gy, gz) = read_sensor(imu)
+        accel_x.append(ax)
+        accel_y.append(ay)
+        accel_z.append(az)
+        gyro_x.append(gx)
+        gyro_y.append(gy)
+        gyro_z.append(gz)
         time.sleep(dt)
-
-    bias = acc / n
-    print(f"Calibration complete. Accel bias (m/s^2): {bias}")
-    return bias
+    acc = np.array([accel_x, accel_y, accel_z])
+    gyro = np.array([gyro_x, gyro_y, gyro_z])
+        
+   
+    gyro_bias = tuple(float(np.mean(v)) for v in (gyro_x, gyro_y, gyro_z))
+    accel_bias = tuple(float(np.mean(v)) for v in (accel_x, accel_y, accel_z))
+    accel_var_x = np.var(acc[0])
+    accel_var_y = np.var(acc[1])
+    accel_var_z = np.var(acc[2])
+    accel_var = tuple(float(np.var(v)) for v in acc)    
+    gyro_var_x = np.var(gyro[0])
+    gyro_var_y = np.var(gyro[1])
+    gyro_var_z = np.var(gyro[2])
+    gyro_var = tuple(float(np.var(v)) for v in gyro)
+    
+    
+    print(f"Calibration complete. Accel bias (m/s^2): {accel_bias}")
+    return accel_bias, gyro_bias, accel_var, gyro_var
 
 
 def main():
     print("\nCollecting data from ICM-20948 sensor\n")
     imu = ICM20948()
 
-    bias = calibrate_accel_bias(imu)
+    accel_bias, gyro_bias, accel_var, gyro_var = calibrate_accel_bias(imu)
 
     dt_target = 1.0 / TARGET_HZ
     start_time = time.time()
 
     timestamp = datetime.now().strftime("imu_%Y_%m_%d_%H_%M_%S")
-    filename = f"{timestamp}.csv"
+    filename_data = f"{timestamp}_{accel_bias[0]:.03}.csv"
+    filename_metadata = f"{timestamp}_metadata_{accel_bias[0]:.03}.txt"
+    
+    with open(filename_metadata, "w") as f:
+        f.write(f"Timestamp: {timestamp}\n")
+        f.write(f"Accel Bias: {accel_bias}\n")
+        f.write(f"Gyro Bias: {gyro_bias}\n")
+        f.write(f"accel_variance: {accel_var}\n")
+        f.write(f"gyro_variance: {gyro_var}\n")
 
-    print(f"Logging to: {filename}")
+    print(f"Logging to: {filename_data}\n")
     print("Press Ctrl+C to stop.\n")
 
-    with open(filename, "w", newline="") as f:
+    with open(filename_data, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow([
             "time",
@@ -80,7 +112,7 @@ def main():
 
             (ax, ay, az), (gx, gy, gz) = read_sensor(imu)
             a_raw = np.array([ax, ay, az], dtype=float)
-            a = a_raw - bias
+            a = a_raw - accel_bias
 
             t = loop_start - start_time
 

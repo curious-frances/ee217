@@ -1,0 +1,5 @@
+Timestamp: imu_2026_02_07_03_32_04
+Accel Bias: [ 0.06281163 -0.28649448 10.04962096]
+Gyro Bias: [ 0.01628876  0.03356934 -0.02288818]
+accel_variance: (np.float64(0.0), np.float64(0.0), np.float64(0.0))
+gyro_variance: (np.float64(0.0), np.float64(0.0), np.float64(0.0))
