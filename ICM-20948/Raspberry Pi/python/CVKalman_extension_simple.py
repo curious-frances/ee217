@@ -65,20 +65,20 @@ xs, ys = [], []
 vxs, vys = [], []
 axs_world, ays_world = [], []
 yaws = []
-prev_ax = 0
-NOISE_SCALE = 0.2
-NOISE_THRESHOLD = 0.1
+# prev_ax = 0
+# NOISE_SCALE = 0.2
+# NOISE_THRESHOLD = 0.1
 for ax_body, ay_body, wz in zip(ax_m, ay_m, gz_corrected):
     
     # Predict step
     kf.predict()
     
-    if abs(ax_body - prev_ax) > NOISE_THRESHOLD:
-        ax_body = ax_body * NOISE_SCALE
-    prev_ax = ax_body
-    if abs(ay_body - prev_ay) < NOISE_THRESHOLD:
-        ay_body = ay_body * NOISE_SCALE
-    prev_ay = ay_body
+    # if abs(ax_body - prev_ax) > NOISE_THRESHOLD:
+    #     ax_body = ax_body * NOISE_SCALE
+    # prev_ax = ax_body
+    # if abs(ay_body - prev_ay) < NOISE_THRESHOLD:
+    #     ay_body = ay_body * NOISE_SCALE
+    # prev_ay = ay_body
     
     # Rotate body-frame accelerations to world-frame using current yaw
     yaw = kf.x[6]
