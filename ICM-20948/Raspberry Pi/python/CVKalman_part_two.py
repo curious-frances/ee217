@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
-csv_path = "good_data/PERFECT_imu_2026_02_06_07_59_03.csv"
+csv_path = "imu_2026_02_07_23_26_02_-0.0854.csv"
 df = pd.read_csv(csv_path)
 
 taxis = df["time"].values
