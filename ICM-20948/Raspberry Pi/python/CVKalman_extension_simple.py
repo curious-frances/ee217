@@ -8,7 +8,7 @@ from filterpy.kalman import KalmanFilter
 # ------------------------------------------------------------
 # Load IMU data
 # ------------------------------------------------------------
-csv_path = "imu_2026_02_07_23_26_02_-0.0854_0.01th.csv"
+csv_path = "imu_2026_02_08_00_05_27_0.0423.csv"
 df = pd.read_csv(csv_path)
 
 t = df["time"].values
