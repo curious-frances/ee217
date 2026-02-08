@@ -8,7 +8,7 @@ from filterpy.kalman import KalmanFilter
 # ------------------------------------------------------------
 # Load IMU data
 # ------------------------------------------------------------
-csv_path = "imu_2026_02_08_00_29_02_-0.15.csv"
+csv_path = "imu_2026_02_08_00_36_29_-0.125.csv"
 df = pd.read_csv(csv_path)
 
 t = df["time"].values
@@ -55,10 +55,10 @@ kf.Q = np.eye(7) * 1e-4
 kf.R = np.diag([0.02, 0.02, 1e-3])
 
 # ZUPT and velocity damping
-zupt_threshold_x = 0.2
+zupt_threshold_x = 0
 zupt_threshold_y = 0.3
-vel_damping_threshold_x = 0.05
-vel_damping_threshold_y = 0.07
+vel_damping_threshold_x = 0
+vel_damping_threshold_y = 0.06
 
 # ------------------------------------------------------------
 # Run filter
