@@ -8,7 +8,7 @@ from filterpy.kalman import KalmanFilter
 # ------------------------------------------------------------
 # Load IMU data
 # ------------------------------------------------------------
-csv_path = "imu_2026_02_08_00_36_29_-0.125.csv"
+csv_path = "good_extension_data/imu_2026_02_08_00_12_36_-0.111_0.2zupth.csv"
 df = pd.read_csv(csv_path)
 
 t = df["time"].values
@@ -55,10 +55,10 @@ kf.Q = np.eye(7) * 1e-4
 kf.R = np.diag([0.02, 0.02, 1e-3])
 
 # ZUPT and velocity damping
-zupt_threshold_x = 0
-zupt_threshold_y = 0.3
-vel_damping_threshold_x = 0
-vel_damping_threshold_y = 0.06
+zupt_threshold_x = 0.2
+zupt_threshold_y = 0.2
+vel_damping_threshold_x = 0.05
+vel_damping_threshold_y = 0.05
 
 # ------------------------------------------------------------
 # Run filter
@@ -99,10 +99,10 @@ for ax_body, ay_body, wz in zip(ax_m, ay_m, gz_corrected):
     kf.update(np.array([ax_w, ay_w, wz]))
     
     # Velocity damping
-    if abs(kf.x[1]) < vel_damping_threshold_x:
-        kf.x[1] *= 0.9
-    if abs(kf.x[4]) < vel_damping_threshold_y:
-        kf.x[4] *= 0.9
+    # if abs(kf.x[1]) < vel_damping_threshold_x:
+    #     kf.x[1] *= 0.9
+    # if abs(kf.x[4]) < vel_damping_threshold_y:
+    #     kf.x[4] *= 0.9
     
     # Store results
     xs.append(kf.x[0])
@@ -122,11 +122,17 @@ ays_world = np.array(ays_world)
 yaws = np.array(yaws)
 
 # ------------------------------------------------------------
-# Error calculations
+# Error calculations (per-axis)
 # ------------------------------------------------------------
 distances = np.sqrt(np.diff(xs)**2 + np.diff(ys)**2)
 cumulative_distance = np.concatenate(([0], np.cumsum(distances)))
+
+error_x = np.abs(xs)
+error_y = np.abs(ys)
 error_from_origin = np.sqrt(xs**2 + ys**2)
+
+final_error_x = error_x[-1]
+final_error_y = error_y[-1]
 final_error = error_from_origin[-1]
 
 # ------------------------------------------------------------
@@ -146,16 +152,20 @@ plt.axis('equal')
 plt.legend()
 # plt.show()
 
-# 2. Error vs Distance
+# 2. Error vs Distance (X and Y separately)
 plt.figure(figsize=(10,6))
-plt.plot(cumulative_distance, error_from_origin, 'r-', linewidth=2)
-plt.axhline(y=final_error, color='k', linestyle='--', label=f'Final error: {final_error:.4f} m')
+plt.plot(cumulative_distance, error_x, linewidth=2, label='X position error')
+plt.plot(cumulative_distance, error_y, linewidth=2, label='Y position error')
+plt.plot(cumulative_distance, error_from_origin, 'k--', alpha=0.7, label='Total error')
+
+plt.axhline(y=final_error_x, linestyle=':', label=f'Final X error: {final_error_x:.3f} m')
+plt.axhline(y=final_error_y, linestyle=':', label=f'Final Y error: {final_error_y:.3f} m')
+
 plt.xlabel('Distance Traveled (m)')
-plt.ylabel('Error from Origin (m)')
-plt.title('Error vs Distance Traveled')
+plt.ylabel('Position Error (m)')
+plt.title('Position Error vs Distance Traveled (Per Axis)')
 plt.grid(True)
 plt.legend()
-# plt.show()
 
 # 3. Position vs Time
 plt.figure(figsize=(10,6))
