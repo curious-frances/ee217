@@ -30,10 +30,10 @@ Try to improve the GPIO signal by increasing the GPIO_FREQ_FACTOR (lower the fre
 """
 
 
-SETUP_SPI = False 
-SET_CHANNEL = False
+SETUP_SPI = True
+SET_CHANNEL = True
 FREQUENCY = 20000
-GPIO_FREQ_FACTOR = 1 # The frequency of the GPIO signal is GPIO_FREQ_FACTOR times less than the frequency of the ADC signal
+GPIO_FREQ_FACTOR = 10 # The frequency of the GPIO signal is GPIO_FREQ_FACTOR times less than the frequency of the ADC signal
 
 
 class FrequencyDetector:
