@@ -38,17 +38,45 @@ TAP_MASKS = {
 SEED = 0x01
 
 # Test settings
-N_BITS_SWEEP = [2,3,4] 
+N_BITS_SWEEP = [2,3,4,5] 
 FRAMES_PER_TEST = 2                       
 
 
 # Live debug plot after sweep
 RUN_LIVE_DEBUG = True
-LIVE_DEBUG_N_BITS = 5
+LIVE_DEBUG_N_BITS = 8
 LIVE_DEBUG_FRAMES = 5000
 
 
 # ---------- Helpers ----------
+def save_crosscorr_plot(xcor_raw, shift, n_bits, frame_idx, out_dir="plots"):
+    """
+    xcor_raw: shape (7, L) full circular cross-correlation per sense line
+    shift: L // 5 (phase offset between drive lines)
+    Saves one PNG with 7 stacked correlation plots.
+    """
+    import os
+    os.makedirs(out_dir, exist_ok=True)
+
+    n_sense, L = xcor_raw.shape
+    fig, axes = plt.subplots(n_sense, 1, figsize=(10, 12), sharex=True)
+
+    drive_marks = [i * shift for i in range(len(DRIVE_PINS))]
+
+    for j in range(n_sense):
+        ax = axes[j]
+        ax.plot(np.arange(L), xcor_raw[j])
+        for m in drive_marks:
+            ax.axvline(m, linestyle="--", linewidth=0.8)
+        ax.set_ylabel(f"S{j}")
+
+    axes[-1].set_xlabel("Lag (samples)")
+    fig.suptitle(f"Cross-correlations (n_bits={n_bits}, L={L}) frame={frame_idx}")
+    fig.tight_layout(rect=[0, 0.02, 1, 0.98])
+
+    fig.savefig(f"{out_dir}/xcor_n{n_bits}_frame{frame_idx:05d}.png", dpi=150)
+    plt.close(fig)
+    
 def make_prbs_matrix(prbs0_bits, n_drive):
     L = len(prbs0_bits)
     shift = L // n_drive
