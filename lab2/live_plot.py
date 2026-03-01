@@ -2,7 +2,7 @@
 import time
 import numpy as np
 import matplotlib
-matplotlib.use("TkAgg")           # interactive backend
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import RPi.GPIO as GPIO
 
@@ -15,9 +15,8 @@ from util import (
     read_adc_volts,
 )
 
-# ---------------- Config ----------------
 DRIVE_PINS = [20, 21, 12, 16, 7]
-SENSE_PINS = [7, 6, 5, 4, 3, 2, 1]   # sense channels you want to scan (7 channels)
+SENSE_PINS = [7, 6, 5, 4, 3, 2, 1]
 
 SETUP_SPI = True
 SET_CHANNEL = False
@@ -34,9 +33,8 @@ TAP_MASKS = {
     12: 0xE08,
 }
 
-N_BITS = 8        
+N_BITS = 8
 PRINT_EVERY = 10
-# ----------------------------------------
 
 
 def make_prbs_matrix(prbs0_bits, n_drive):
@@ -52,11 +50,6 @@ def drive_outputs(prbs_mat, s_idx):
 
 
 def acquire_frame(ADC, prbs_mat, L):
-    """
-    Spec-compliant scan:
-      For each sense channel: restart PRBS at s=0 and scan full length L.
-    Returns raw shape (7, L)
-    """
     raw = np.zeros((len(SENSE_PINS), L), dtype=float)
     for j, ch in enumerate(SENSE_PINS):
         for s in range(L):
@@ -87,7 +80,6 @@ def main():
     prbs0_pm1 = bits_to_pm1(prbs0_bits)
     prbs_mat, _ = make_prbs_matrix(prbs0_bits, len(DRIVE_PINS))
 
-    # ---------- Live plot setup ----------
     plt.ion()
     fig, ax = plt.subplots(figsize=(10, 6))
     x = np.arange(L)
@@ -107,16 +99,15 @@ def main():
     fig.show()
 
     t_start = time.time()
-
     k = 0
+
     try:
         while True:
             t0 = time.time()
 
             raw = acquire_frame(ADC, prbs_mat, L)
-            xcor = correlate_full(prbs0_pm1, raw)   # shape (7, L)
+            xcor = correlate_full(prbs0_pm1, raw)
 
-            # Update line data
             y_min = float(np.min(xcor))
             y_max = float(np.max(xcor))
             pad = 0.05 * (y_max - y_min + 1e-9)
@@ -124,7 +115,6 @@ def main():
             for j, ln in enumerate(lines):
                 ln.set_ydata(xcor[j])
 
-            # Auto-scale y smoothly
             ax.set_ylim(y_min - pad, y_max + pad)
 
             fig.canvas.draw_idle()

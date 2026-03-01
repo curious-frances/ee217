@@ -13,7 +13,6 @@ from util import (
     adc_setup,
     read_adc_volts,
 )
-#DRIVE_PINS = [21, 20, 16, 12, 7]
 
 DRIVE_PINS = [20, 21, 12, 16, 7]
 SENSE_PINS = [7, 6, 5, 4, 3, 2, 1]
@@ -37,24 +36,15 @@ TAP_MASKS = {
 
 SEED = 0x01
 
-# Test settings
-N_BITS_SWEEP = [2,3,4,5] 
-FRAMES_PER_TEST = 2                       
+N_BITS_SWEEP = [2, 3, 4, 5, 6, 7]
+FRAMES_PER_TEST = 2
 
-
-# Live debug plot after sweep
 RUN_LIVE_DEBUG = True
 LIVE_DEBUG_N_BITS = 5
 LIVE_DEBUG_FRAMES = 10000
 
 
-# ---------- Helpers ----------
 def save_crosscorr_plot(xcor_raw, shift, n_bits, frame_idx, out_dir="plots"):
-    """
-    xcor_raw: shape (7, L) full circular cross-correlation per sense line
-    shift: L // 5 (phase offset between drive lines)
-    Saves one PNG with 7 stacked correlation plots.
-    """
     import os
     os.makedirs(out_dir, exist_ok=True)
 
@@ -73,48 +63,39 @@ def save_crosscorr_plot(xcor_raw, shift, n_bits, frame_idx, out_dir="plots"):
     axes[-1].set_xlabel("Lag (samples)")
     fig.suptitle(f"Cross-correlations (n_bits={n_bits}, L={L}) frame={frame_idx}")
     fig.tight_layout(rect=[0, 0.02, 1, 0.98])
-
     fig.savefig(f"{out_dir}/xcor_n{n_bits}_frame{frame_idx:05d}.png", dpi=150)
     plt.close(fig)
-    
+
+
 def make_prbs_matrix(prbs0_bits, n_drive):
     L = len(prbs0_bits)
     shift = L // n_drive
     prbs_mat = np.vstack([np.roll(prbs0_bits, i * shift) for i in range(n_drive)])
     return prbs_mat, shift
 
+
 def drive_outputs(drive_pins, prbs_mat, s_idx):
     for i, pin in enumerate(drive_pins):
         GPIO.output(pin, int(prbs_mat[i, s_idx]))
 
-def acquire_frame(ADC, drive_pins, sense_pins, prbs_mat, L):
-    """
-    Spec-compliant scan:
-      sense0 across full PRBS, switch sense1 restart PRBS, etc.
-    Returns raw shape (7, L)
-    """
-    raw = np.zeros((len(sense_pins), L), dtype=float)
 
+def acquire_frame(ADC, drive_pins, sense_pins, prbs_mat, L):
+    raw = np.zeros((len(sense_pins), L), dtype=float)
     for j, ch in enumerate(sense_pins):
         for s in range(L):
             drive_outputs(drive_pins, prbs_mat, s)
             raw[j, s] = read_adc_volts(ADC, ch)
-
     return raw
 
+
 def correlate_frame(prbs0_pm1, raw_sense, shift, n_drive):
-    """
-    raw_sense: (7, L)
-    returns xcor_map: (7, 5) sampled at i*shift
-    """
     n_sense = raw_sense.shape[0]
     xcor_map = np.zeros((n_sense, n_drive), dtype=float)
-
     for j in range(n_sense):
         r = circular_cross_correlation(prbs0_pm1, raw_sense[j])
         xcor_map[j, :] = [r[i * shift] for i in range(n_drive)]
-
     return xcor_map
+
 
 def measure_fps_for_nbits(ADC, n_bits, frames=2):
     tap_mask = TAP_MASKS[n_bits]
@@ -132,6 +113,7 @@ def measure_fps_for_nbits(ADC, n_bits, frames=2):
 
     fps = frames / dt if dt > 0 else 0.0
     return L, tap_mask, fps
+
 
 def run_live_debug(ADC, n_bits, frames=50):
     tap_mask = TAP_MASKS[n_bits]
@@ -168,6 +150,7 @@ def run_live_debug(ADC, n_bits, frames=50):
         t1 = time.time()
         fps_inst = 1.0 / (t1 - t0) if (t1 - t0) > 0 else 0.0
         fps_avg = (k + 1) / (t1 - t_start)
+
         if (k % 5) == 0:
             print(f"[LIVE n_bits={n_bits}, L={L}] frame={k+1:3d}/{frames} | fps_inst={fps_inst:.2f} | fps_avg={fps_avg:.2f}")
 
@@ -176,13 +159,12 @@ def run_live_debug(ADC, n_bits, frames=50):
 
 
 def main():
-    # init hardware once
     ADC = adc_setup(SETUP_SPI, SET_CHANNEL)
     setup_gpio(DRIVE_PINS)
 
-    print("=== PRBS length sweep (Bullets 1–2) ===")
     print("n_bits   L=2^n-1   tap_mask   fps")
     results = []
+
     for n_bits in N_BITS_SWEEP:
         if n_bits not in TAP_MASKS:
             continue
@@ -190,14 +172,7 @@ def main():
         results.append((n_bits, L, tap_mask, fps))
         print(f"{n_bits:5d}  {L:8d}   0x{tap_mask:04X}   {fps:6.3f}")
 
-    # quick callout so you can compare expected 5-bit fps
-    for (n_bits, L, tap, fps) in results:
-        if n_bits == 5:
-            print(f"\nExpected check: n_bits=5 (L={L}) fps ≈ {fps:.3f}\n")
-            break
-
     if RUN_LIVE_DEBUG:
-        print("=== Live correlator debug (heatmap) ===")
         run_live_debug(ADC, LIVE_DEBUG_N_BITS, frames=LIVE_DEBUG_FRAMES)
 
     GPIO.cleanup()
