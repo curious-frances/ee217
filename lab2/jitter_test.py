@@ -123,6 +123,15 @@ def main():
 
     print(f"Mean centroid: ({cx0:.4f}, {cy0:.4f})")
     print(f"RMS jitter: {rms:.6f} grid units")
+    
+    # Variance statistics
+    var_x = np.var(cx)
+    var_y = np.var(cy)
+    combined_var = np.mean((cx - cx0)**2 + (cy - cy0)**2)
+
+    print(f"Variance in x-coordinates: {var_x}")
+    print(f"Variance in y-coordinates: {var_y}")
+    print(f"Combined variance in centroid position: {combined_var}")
 
     # Save scatter
     fig, ax = plt.subplots()

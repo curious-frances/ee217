@@ -44,8 +44,8 @@ FRAMES_PER_TEST = 2
 
 # Live debug plot after sweep
 RUN_LIVE_DEBUG = True
-LIVE_DEBUG_N_BITS = 8
-LIVE_DEBUG_FRAMES = 5000
+LIVE_DEBUG_N_BITS = 5
+LIVE_DEBUG_FRAMES = 10000
 
 
 # ---------- Helpers ----------

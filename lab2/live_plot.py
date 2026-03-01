@@ -1,8 +1,8 @@
-import os
+#!/usr/bin/env python3
 import time
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("TkAgg")           # interactive backend
 import matplotlib.pyplot as plt
 import RPi.GPIO as GPIO
 
@@ -15,24 +15,28 @@ from util import (
     read_adc_volts,
 )
 
+# ---------------- Config ----------------
 DRIVE_PINS = [20, 21, 12, 16, 7]
-SENSE_PINS = [7, 6, 5, 4, 3, 2, 1]
+SENSE_PINS = [7, 6, 5, 4, 3, 2, 1]   # sense channels you want to scan (7 channels)
 
 SETUP_SPI = True
 SET_CHANNEL = False
 SEED = 0x01
 
 TAP_MASKS = {
-    5: 0x14,
-    6: 0x30,
-    7: 0x60,
-    8: 0xB8,
+    5:  0x14,
+    6:  0x30,
+    7:  0x60,
+    8:  0xB8,
+    9:  0x110,
+    10: 0x240,
+    11: 0x500,
+    12: 0xE08,
 }
 
-N_BITS = 6
-N_FRAMES = 300
-SAVE_EVERY = 10
-OUT_DIR = "plots_live"
+N_BITS = 8        
+PRINT_EVERY = 10
+# ----------------------------------------
 
 
 def make_prbs_matrix(prbs0_bits, n_drive):
@@ -48,7 +52,12 @@ def drive_outputs(prbs_mat, s_idx):
 
 
 def acquire_frame(ADC, prbs_mat, L):
-    raw = np.zeros((len(SENSE_PINS), L))
+    """
+    Spec-compliant scan:
+      For each sense channel: restart PRBS at s=0 and scan full length L.
+    Returns raw shape (7, L)
+    """
+    raw = np.zeros((len(SENSE_PINS), L), dtype=float)
     for j, ch in enumerate(SENSE_PINS):
         for s in range(L):
             drive_outputs(prbs_mat, s)
@@ -58,21 +67,15 @@ def acquire_frame(ADC, prbs_mat, L):
 
 def correlate_full(prbs0_pm1, raw):
     n_sense, L = raw.shape
-    xcor = np.zeros((n_sense, L))
+    xcor = np.zeros((n_sense, L), dtype=float)
     for j in range(n_sense):
         xcor[j] = circular_cross_correlation(prbs0_pm1, raw[j])
     return xcor
 
 
-def sample_map(xcor_raw, shift):
-    xcor_map = np.zeros((len(SENSE_PINS), len(DRIVE_PINS)))
-    for j in range(len(SENSE_PINS)):
-        xcor_map[j] = [xcor_raw[j][i * shift] for i in range(len(DRIVE_PINS))]
-    return xcor_map
-
-
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    if N_BITS not in TAP_MASKS:
+        raise ValueError(f"N_BITS={N_BITS} not in TAP_MASKS")
 
     tap_mask = TAP_MASKS[N_BITS]
     L = (1 << N_BITS) - 1
@@ -80,42 +83,65 @@ def main():
     ADC = adc_setup(SETUP_SPI, SET_CHANNEL)
     setup_gpio(DRIVE_PINS)
 
-    prbs0 = np.array(lfsr_prbs(N_BITS, tap_mask, SEED), dtype=np.int8)
-    prbs0_pm1 = bits_to_pm1(prbs0)
-    prbs_mat, shift = make_prbs_matrix(prbs0, len(DRIVE_PINS))
+    prbs0_bits = np.array(lfsr_prbs(N_BITS, tap_mask, SEED), dtype=np.int8)
+    prbs0_pm1 = bits_to_pm1(prbs0_bits)
+    prbs_mat, _ = make_prbs_matrix(prbs0_bits, len(DRIVE_PINS))
 
-    print(f"Running live save: n_bits={N_BITS}, L={L}")
+    # ---------- Live plot setup ----------
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    x = np.arange(L)
 
-    for k in range(N_FRAMES):
-        t0 = time.time()
+    lines = []
+    for j in range(len(SENSE_PINS)):
+        (ln,) = ax.plot(x, np.zeros(L), linewidth=1.2, label=f"Sense Line {j+1}")
+        lines.append(ln)
 
-        raw = acquire_frame(ADC, prbs_mat, L)
-        xcor_raw = correlate_full(prbs0_pm1, raw)
-        xcor_map = sample_map(xcor_raw, shift)
+    ax.set_title("Live Plot of Cross Correlations of Sense Lines")
+    ax.set_xlabel("Sample")
+    ax.set_ylabel("Amplitude")
+    ax.grid(True)
+    ax.legend(loc="upper right")
 
-        if k % SAVE_EVERY == 0:
-            # Heatmap
-            fig, ax = plt.subplots()
-            im = ax.imshow(xcor_map, aspect="auto")
-            plt.colorbar(im, ax=ax)
-            ax.set_title(f"Heatmap n_bits={N_BITS} frame={k}")
-            fig.savefig(f"{OUT_DIR}/heatmap_{k:04d}.png", dpi=150)
-            plt.close(fig)
+    fig.canvas.draw()
+    fig.show()
 
-            # Full cross correlations
-            fig, axes = plt.subplots(len(SENSE_PINS), 1, figsize=(10, 12), sharex=True)
-            for j in range(len(SENSE_PINS)):
-                axes[j].plot(xcor_raw[j])
-                axes[j].set_ylabel(f"S{j}")
-            fig.savefig(f"{OUT_DIR}/xcor_{k:04d}.png", dpi=150)
-            plt.close(fig)
+    t_start = time.time()
 
-        fps = 1.0 / (time.time() - t0)
-        if k % 5 == 0:
-            print(f"Frame {k}/{N_FRAMES} | fps={fps:.2f}")
+    k = 0
+    try:
+        while True:
+            t0 = time.time()
 
-    GPIO.cleanup()
-    print("Done.")
+            raw = acquire_frame(ADC, prbs_mat, L)
+            xcor = correlate_full(prbs0_pm1, raw)   # shape (7, L)
+
+            # Update line data
+            y_min = float(np.min(xcor))
+            y_max = float(np.max(xcor))
+            pad = 0.05 * (y_max - y_min + 1e-9)
+
+            for j, ln in enumerate(lines):
+                ln.set_ydata(xcor[j])
+
+            # Auto-scale y smoothly
+            ax.set_ylim(y_min - pad, y_max + pad)
+
+            fig.canvas.draw_idle()
+            fig.canvas.flush_events()
+
+            t1 = time.time()
+            fps_inst = 1.0 / (t1 - t0) if (t1 - t0) > 0 else 0.0
+            fps_avg = (k + 1) / (t1 - t_start)
+
+            if (k % PRINT_EVERY) == 0:
+                print(f"[xcor live] frame={k:6d}  fps_inst={fps_inst:5.2f}  fps_avg={fps_avg:5.2f}")
+
+            k += 1
+
+    finally:
+        GPIO.cleanup()
+        plt.ioff()
 
 
 if __name__ == "__main__":
