@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import RPi.GPIO as GPIO
+from filterpy.common import Q_discrete_white_noise
 
 USE_GUI = True
 if USE_GUI:
@@ -46,8 +47,8 @@ BASELINE_FRAMES = 1000
 THRESHOLD = 5.0
 TOPK = 5
 
-PROCESS_VAR = 0.5
-MEAS_VAR = 0.06
+PROCESS_VAR = 0.2
+MEAS_VAR = 0.0076
 
 PRINT_EVERY = 100
 
@@ -194,10 +195,7 @@ def main():
             dt3 = dt2 * dt
             dt4 = dt2 * dt2
             q = float(PROCESS_VAR)
-            kf.Q = q * np.array([[dt4 / 4, 0.0, dt3 / 2, 0.0],
-                                 [0.0, dt4 / 4, 0.0, dt3 / 2],
-                                 [dt3 / 2, 0.0, dt2, 0.0],
-                                 [0.0, dt3 / 2, 0.0, dt2]], dtype=float)
+            kf.Q = Q_discrete_white_noise(dim=2, dt=dt, var=float(PROCESS_VAR), block_size=2)
 
             kf.predict()
             kf.update(np.array([c[0], c[1]], dtype=float))
