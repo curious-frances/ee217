@@ -38,15 +38,15 @@ TAP_MASKS = {
 SEED = 0x01
 
 # Live debug plot
-RUN_LIVE_DEBUG = True
-LIVE_DEBUG_N_BITS = 8
-LIVE_DEBUG_FRAMES = 5000
+RUN_LIVE_DEBUG = False
+LIVE_DEBUG_N_BITS = 5
+LIVE_DEBUG_FRAMES = 100
 
 # Data logging (NEW)
 LOG_ENABLE = True
 LOG_CSV_PATH = "touch_frames.csv"
-LOG_N_BITS = 8                 # PRBS length for logging
-LOG_FRAMES = 2000              # how many frames to log
+LOG_N_BITS = 5                # PRBS length for logging
+LOG_FRAMES = 500             # how many frames to log
 LOG_MIN_CLIP = 0.0             # baseline subtract on heatmap before centroid (often 0 is fine)
 LOG_BG_FRACTION = 0.70         # background = bottom 70% of weights (used for bg_std)
 
