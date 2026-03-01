@@ -1,32 +1,11 @@
-#!/usr/bin/env python3
-"""
-EE217 Lab2 — Part 2 (Last bullet): Kalman filter smoothing + velocity
-
-What this file does:
-- Runs your sensing pipeline:
-  1) Scan 7 sense channels sequentially across one PRBS period (restart PRBS per sense line)
-  2) Compute full circular cross-correlation per sense line (7 x L)
-  3) Sample correlation at the 5 drive phase offsets -> 7x5 map
-  4) Build a baseline (no-touch) map, subtract baseline to get delta map
-  5) Threshold delta map -> touch map, compute centroid (grid coords)
-- Applies a Kalman filter on [x, y, vx, vy] to smooth centroid and estimate velocity.
-
-Requires util.py providing:
-  lfsr_prbs, bits_to_pm1, circular_cross_correlation,
-  setup_gpio, adc_setup, read_adc_volts
-
-Run:
-  python3 kalman_touch.py
-"""
-
 import time
 import numpy as np
 import RPi.GPIO as GPIO
 
-# Optional live plots (needs X11)
 USE_GUI = True
 if USE_GUI:
     import matplotlib
+
     matplotlib.use("TkAgg")
     import matplotlib.pyplot as plt
 
@@ -50,14 +29,14 @@ SET_CHANNEL = False
 # ---------------- PRBS config ----------------
 SEED = 0x01
 TAP_MASKS = {
-    2:  0x3,
-    3:  0x6,
-    4:  0xC,
-    5:  0x14,
-    6:  0x30,
-    7:  0x60,
-    8:  0xB8,
-    9:  0x110,
+    2: 0x3,
+    3: 0x6,
+    4: 0xC,
+    5: 0x14,
+    6: 0x30,
+    7: 0x60,
+    8: 0xB8,
+    9: 0x110,
     10: 0x240,
     11: 0x500,
     12: 0xE08,
@@ -66,17 +45,17 @@ N_BITS = 6  # choose 5/6 for higher FPS, 8/9 for more coding gain (slower)
 
 # ---------------- Baseline + touch detection ----------------
 USE_BASELINE = True
-BASELINE_FRAMES = 50          # collect baseline with NO TOUCH
-THRESHOLD = 5.0               # threshold on (xcor_map - baseline). Tune based on your magnitudes.
-TOPK = 5                      # centroid computed from top-K cells in touch map
+BASELINE_FRAMES = 50  # collect baseline with NO TOUCH
+THRESHOLD = 5.0  # threshold on (xcor_map - baseline). Tune based on your magnitudes.
+TOPK = 5  # centroid computed from top-K cells in touch map
 
 # ---------------- Kalman tuning ----------------
 # If filter is too laggy: increase PROCESS_VAR
 # If still jittery: increase MEAS_VAR
-PROCESS_VAR = 0.2             # process noise (acceleration uncertainty)
-MEAS_VAR = 0.05               # measurement noise (centroid noise)
+PROCESS_VAR = 0.2  # process noise (acceleration uncertainty)
+MEAS_VAR = 0.05  # measurement noise (centroid noise)
 
-PRINT_EVERY = 10              # print every N frames
+PRINT_EVERY = 10  # print every N frames
 
 
 # ================= Kalman Filter =================
@@ -86,12 +65,12 @@ class KalmanXYVel:
     Measurement: [x, y]^T
     Constant-velocity model
     """
+
     def __init__(self, process_var=0.2, meas_var=0.05):
         self.x = np.zeros((4, 1), dtype=float)
         self.P = np.eye(4, dtype=float) * 1.0
 
-        self.H = np.array([[1, 0, 0, 0],
-                           [0, 1, 0, 0]], dtype=float)
+        self.H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], dtype=float)
 
         self.R = np.eye(2, dtype=float) * meas_var
         self.process_var = process_var
@@ -104,12 +83,15 @@ class KalmanXYVel:
         dt2 = dt * dt
         dt3 = dt2 * dt
         dt4 = dt2 * dt2
-        return q * np.array([
-            [dt4/4, 0,     dt3/2, 0],
-            [0,     dt4/4, 0,     dt3/2],
-            [dt3/2, 0,     dt2,   0],
-            [0,     dt3/2, 0,     dt2],
-        ], dtype=float)
+        return q * np.array(
+            [
+                [dt4 / 4, 0, dt3 / 2, 0],
+                [0, dt4 / 4, 0, dt3 / 2],
+                [dt3 / 2, 0, dt2, 0],
+                [0, dt3 / 2, 0, dt2],
+            ],
+            dtype=float,
+        )
 
     def predict(self, t_now):
         if self.last_t is None:
@@ -120,10 +102,9 @@ class KalmanXYVel:
         if dt <= 0:
             dt = 1e-3
 
-        F = np.array([[1, 0, dt, 0],
-                      [0, 1, 0,  dt],
-                      [0, 0, 1,  0],
-                      [0, 0, 0,  1]], dtype=float)
+        F = np.array(
+            [[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=float
+        )
 
         self.x = F @ self.x
         self.P = F @ self.P @ F.T + self._Q(dt)
@@ -235,7 +216,9 @@ def main():
     prbs_mat, shift = make_prbs_matrix(prbs0_bits, len(DRIVE_PINS))
 
     print(f"[kalman] n_bits={N_BITS}, L={L}, tap_mask=0x{tap_mask:X}, shift={shift}")
-    print(f"[kalman] threshold={THRESHOLD}, baseline={USE_BASELINE} ({BASELINE_FRAMES} frames)")
+    print(
+        f"[kalman] threshold={THRESHOLD}, baseline={USE_BASELINE} ({BASELINE_FRAMES} frames)"
+    )
     print(f"[kalman] KF process_var={PROCESS_VAR}, meas_var={MEAS_VAR}")
 
     # ---------- baseline ----------
