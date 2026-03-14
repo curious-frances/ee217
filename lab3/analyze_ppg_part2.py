@@ -86,7 +86,7 @@ def main():
     ibi = np.diff(peak_times)
 
     # Keep only physiologically reasonable intervals
-    valid_mask = (ibi >= 0.4) & (ibi <= 1.5)
+    valid_mask = (ibi >= 0.5) & (ibi <= 2)
     valid_ibi = ibi[valid_mask]
 
     if len(valid_ibi) < 2:
