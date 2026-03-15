@@ -8,7 +8,7 @@ import os
 
 # Constants
 SAMPLE_FREQUENCY = 500
-SENSE_LINE_PIN = 5
+SENSE_LINE_PIN = 7
 
 
 def init_adc(SET_UP_SPI=True):
